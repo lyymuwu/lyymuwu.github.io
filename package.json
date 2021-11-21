@@ -3,7 +3,7 @@
     "title": "MUWU Blog",
     "version": "1.0.",
     "homepage": "http://lyymuwu.github.io",
-    "author": "Hux",
+    "author": "MUWU",
     "devDependencies": {
         "grunt": "~0.4.5",
         "grunt-contrib-less": "~0.11.4",
