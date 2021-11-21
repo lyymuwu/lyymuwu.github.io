@@ -3,7 +3,7 @@ layout:     post
 title:      "Welcome to MUWU Blog"
 subtitle:   " \"Hello World, Hello Blog\""
 date:       2021-11-20 21:18:00
-author:     "MUWU"
+author:     "muwu"
 header-img: "img/helloworld.jpg"
 tags:
     - 生活
