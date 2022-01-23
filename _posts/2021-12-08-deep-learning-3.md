@@ -34,7 +34,7 @@ tag: 深度学习
 
 ## GRU
 
-gamma (Γ)表示我们又多大程度想要改变之前的memory cell (C)中存储的值
+gamma (Γ)表示我们又多大程度想要改变之前的memory cell (C)中存储的值 
 
 C等同于上图中RNN计算出的a
 
