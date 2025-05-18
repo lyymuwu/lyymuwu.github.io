@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<title>贪吃蛇</title>
+<style>
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #222;
+    color: #fff;
+    font-family: "微软雅黑", sans-serif;
+    margin: 0;
+    height: 100vh;
+    justify-content: center;
+  }
+  canvas {
+    background: #000;
+    border: 2px solid #0f0;
+    border-radius: 8px;
+    touch-action: none;
+  }
+  .controls {
+    margin-top: 15px;
+    display: grid;
+    grid-template-columns: 60px 60px 60px;
+    grid-template-rows: 60px 60px 60px;
+    gap: 10px;
+    user-select: none;
+  }
+  .btn {
+    background: #0f0;
+    color: #000;
+    font-weight: bold;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .btn:active {
+    background: #080;
+  }
+  .empty {
+    background: transparent;
+    cursor: default;
+  }
+  .instructions {
+    text-align: center;
+    max-width: 400px;
+    margin-bottom: 15px;
+  }
+  select {
+    margin-top: 10px;
+    font-size: 16px;
+    padding: 5px;
+    border-radius: 8px;
+    border: 2px solid #0f0;
+    background: #222;
+    color: #fff;
+  }
+</style>
+</head>
+<body>
+
+<!-- 
+  贪吃蛇小游戏
+  Copyright © 2024 MUWU
+  如需转载或使用请注明出处
+-->
+<div style="color:#aaa;text-align:center;font-size:14px;margin-top:10px;margin-bottom:5px;">
+  贪吃蛇小游戏&nbsp;|&nbsp;Copyright © 2025 李雅元&nbsp;
+</div>
+
+<div class="instructions">
+  <h2>游戏说明</h2>
+  <p>控制蛇吞食红色方块以获得分数。避开黄色方块（障碍物）。蓝色方块（特殊食物）可获得额外加分。</p>
+  <label for="difficulty">选择游戏难度:</label>
+  <select id="difficulty">
+    <option value="easy">正常 (3个障碍物)</option>
+    <option value="medium">困难 (5个障碍物)</option>
+    <option value="hard">地狱 (10个障碍物)</option>
+  </select>
+</div>
+
+<canvas id="game" width="400" height="400"></canvas>
+
+<div class="controls" id="controls">
+  <div class="empty"></div>
+  <div class="btn" data-dir="up">↑</div>
+  <div class="empty"></div>
+  <div class="btn" data-dir="left">←</div>
+  <div class="empty"></div>
+  <div class="btn" data-dir="right">→</div>
+  <div class="empty"></div>
+  <div class="btn" data-dir="down">↓</div>
+  <div class="empty"></div>
+</div>
+
+<script>
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const gridSize = 20;
+  const gridCount = canvas.width / gridSize;
+
+  let snake = [
+    {x: 7, y: 7},
+    {x: 6, y: 7},
+    {x: 5, y: 7}
+  ];
+
+  let direction = {x: 1, y: 0};
+  let nextDirection = direction;
+  let food = {};
+  let specialFood = {};
+  let obstacles = [];
+  let gameover = false;
+  let score = 0;
+  let specialFoodActive = false;
+  let obstacleCount = 3;
+  let obstacleMoveCounter = 0; // 新增计数器
+  const obstacleMoveInterval = 5; // 每5帧移动一次障碍物
+  const success_score = 520;
+
+  document.getElementById('difficulty').addEventListener('change', function() {
+    switch (this.value) {
+      case 'easy':
+        obstacleCount = 3;
+        break;
+      case 'medium':
+        obstacleCount = 5;
+        break;
+      case 'hard':
+        obstacleCount = 10;
+        break;
+    }
+    resetGame();
+  });
+
+  function placeFood() {
+    let valid = false;
+    while (!valid) {
+      food.x = Math.floor(Math.random() * gridCount);
+      food.y = Math.floor(Math.random() * gridCount);
+      valid = !snake.some(segment => segment.x === food.x && segment.y === food.y) &&
+              !obstacles.some(obstacle => obstacle.x === food.x && obstacle.y === food.y);
+    }
+  }
+
+  function placeSpecialFood() {
+    specialFood.x = Math.floor(Math.random() * gridCount);
+    specialFood.y = Math.floor(Math.random() * gridCount);
+    specialFoodActive = true;
+  }
+
+  function createObstacles() {
+    obstacles = Array.from({length: obstacleCount}, () => {
+      let obstacle;
+      let valid = false;
+      while (!valid) {
+        obstacle = {x: Math.floor(Math.random() * gridCount), y: Math.floor(Math.random() * gridCount)};
+        valid = !snake.some(segment => segment.x === obstacle.x && segment.y === obstacle.y) &&
+                !obstacles.some(o => o.x === obstacle.x && o.y === obstacle.y) &&
+                (obstacle.x !== food.x || obstacle.y !== food.y);
+      }
+      return obstacle;
+    });
+  }
+
+  function moveObstacles() {
+    obstacles.forEach(obstacle => {
+      obstacle.x = (obstacle.x + Math.floor(Math.random() * 3) - 1 + gridCount) % gridCount;
+      obstacle.y = (obstacle.y + Math.floor(Math.random() * 3) - 1 + gridCount) % gridCount;
+    });
+  }
+
+  function resetGame() {
+    snake = [
+      {x: 7, y: 7},
+      {x: 6, y: 7},
+      {x: 5, y: 7}
+    ];
+    direction = {x: 1, y: 0};
+    nextDirection = direction;
+    score = 0;
+    gameover = false;
+    specialFoodActive = false;
+    placeFood();
+    createObstacles();
+  }
+
+  function draw() {
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "#f44";
+    ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
+
+    if (specialFoodActive) {
+      ctx.fillStyle = "#44f";
+      ctx.fillRect(specialFood.x * gridSize, specialFood.y * gridSize, gridSize, gridSize);
+    }
+
+    obstacles.forEach(obstacle => {
+      ctx.fillStyle = "#ff0";
+      ctx.fillRect(obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
+    });
+
+    ctx.fillStyle = "#0f0";
+    snake.forEach((segment, index) => {
+      ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+      if (index === 0) {
+        ctx.fillStyle = "#003300";
+        let eyeSize = gridSize / 5;
+        let eye1X = segment.x * gridSize + eyeSize;
+        let eye1Y = segment.y * gridSize + eyeSize;
+        let eye2X = segment.x * gridSize + gridSize - 2 * eyeSize;
+        let eye2Y = eye1Y;
+        ctx.beginPath();
+        ctx.arc(eye1X, eye1Y, eyeSize, 0, 2 * Math.PI);
+        ctx.arc(eye2X, eye2Y, eyeSize, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.fillStyle = "#0f0";
+      }
+    });
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "16px Arial";
+    ctx.fillText("得分: " + score, 10, 20);
+
+    if(gameover && score < success_score){
+      ctx.fillStyle = "rgba(0,0,0,0.7)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#f33";
+      ctx.font = "30px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("游戏结束", canvas.width / 2, canvas.height / 2 - 30);
+      ctx.font = "16px Arial";
+      ctx.fillText("点击方向键或按钮重新开始", canvas.width / 2, canvas.height / 2 + 10);
+      ctx.fillStyle = "#ff0";
+      ctx.fillText("距离成功还差 " + (success_score - score) + " 分", canvas.width / 2, canvas.height / 2 + 40);
+      ctx.textAlign = "start";
+    } else if(score >= success_score) {
+      ctx.fillStyle = "rgba(0,0,0,0.7)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#3f3";
+      ctx.font = "30px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("游戏成功", canvas.width / 2, canvas.height / 2 - 20);
+      ctx.font = "16px Arial";
+      ctx.fillText("点击方向键或按钮重新开始", canvas.width / 2, canvas.height / 2 + 20);
+      gameover = true;
+      ctx.textAlign = "start";
+      // 根据障碍物数量弹出不同提示
+      setTimeout(() => {
+        let msg = "恭喜你，游戏成功！\n\n";
+        if (obstacleCount === 3) {
+          msg += "你在【正常】难度下通关，继续挑战更高难度吧！";
+        } else if (obstacleCount === 5) {
+          msg += "你是天才吗，居然能在【困难】难度下通关，太棒了！";
+        } else if (obstacleCount === 10) {
+          msg += "子宜大人请教教我，我都没通关过【地狱】难度，你简直是蛇王！";
+        }
+        msg += "\n\n请前往领取奖励（所有难度奖励一样哦）：";
+        window.prompt(msg, "https://3.cn/2-gOeXJe");
+      }, 100);
+    }
+  }
+
+  function update() {
+    if (gameover) return;
+
+    if (Math.abs(nextDirection.x) !== Math.abs(direction.x) || Math.abs(nextDirection.y) !== Math.abs(direction.y)) {
+      direction = nextDirection;
+    }
+
+    let newHead = {
+      x: snake[0].x + direction.x,
+      y: snake[0].y + direction.y
+    };
+
+    if (newHead.x < 0 || newHead.y < 0 || newHead.x >= gridCount || newHead.y >= gridCount ||
+        snake.some(segment => segment.x === newHead.x && segment.y === newHead.y) ||
+        obstacles.some(obstacle => obstacle.x === newHead.x && obstacle.y === newHead.y)) {
+      gameover = true;
+      draw();
+      return;
+    }
+
+    snake.unshift(newHead);
+
+    if (newHead.x === food.x && newHead.y === food.y) {
+      score += 20;
+      if (obstacleCount == 3) {
+        score += 10;
+      }
+      placeFood();
+      if (obstacleCount == 3) {
+        if (Math.random() < 0.8) {
+            placeSpecialFood();
+        }
+      } else {
+            if (Math.random() < 0.2) {
+            placeSpecialFood();
+        }
+      }
+    } else {
+      snake.pop();
+    }
+
+    if (specialFoodActive && newHead.x === specialFood.x && newHead.y === specialFood.y) {
+      score += 50;
+      if (obstacleCount == 3) {
+        score += 30;
+      }
+      specialFoodActive = false;
+    }
+
+    // 修改障碍物移动逻辑
+    obstacleMoveCounter++;
+    if (obstacleMoveCounter >= obstacleMoveInterval) {
+        moveObstacles();
+        obstacleMoveCounter = 0;
+    }
+  }
+
+  function gameLoop() {
+    update();
+    draw();
+  }
+
+  resetGame();
+  draw();
+
+  const interval = 150;
+  setInterval(gameLoop, interval);
+
+  window.addEventListener('keydown', e => {
+    if (gameover) {
+      resetGame();
+      return;
+    }
+    switch (e.key) {
+      case 'ArrowUp':
+        if (direction.y !== 1) nextDirection = {x: 0, y: -1};
+        break;
+      case 'ArrowDown':
+        if (direction.y !== -1) nextDirection = {x: 0, y: 1};
+        break;
+      case 'ArrowLeft':
+        if (direction.x !== 1) nextDirection = {x: -1, y: 0};
+        break;
+      case 'ArrowRight':
+        if (direction.x !== -1) nextDirection = {x: 1, y: 0};
+        break;
+    }
+  });
+
+  document.getElementById('controls').addEventListener('click', e => {
+    if (!e.target.classList.contains('btn')) return;
+    if (gameover) {
+      resetGame();
+    }
+    const dir = e.target.getAttribute('data-dir');
+    switch(dir) {
+      case 'up':
+        if (direction.y !== 1) nextDirection = {x: 0, y: -1};
+        break;
+      case 'down':
+        if (direction.y !== -1) nextDirection = {x: 0, y: 1};
+        break;
+      case 'left':
+        if (direction.x !== 1) nextDirection = {x: -1, y: 0};
+        break;
+      case 'right':
+        if (direction.x !== -1) nextDirection = {x: 1, y: 0};
+        break;
+    }
+  });
+
+</script>
+
+</body>
+</html>
