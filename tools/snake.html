@@ -257,17 +257,19 @@
       ctx.textAlign = "start";
       // 根据障碍物数量弹出不同提示
       setTimeout(() => {
-        let msg = "恭喜你，游戏成功！\n\n";
+        let msg = "Congratulations👏👏\n\n";
         if (obstacleCount === 3) {
-          msg += "你在【正常】难度下通关，继续挑战更高难度吧！";
+          msg += "子宜你成功通关啦，太棒了！";
         } else if (obstacleCount === 5) {
-          msg += "你是天才吗，居然能在【困难】难度下通关，太棒了！";
+          msg += "子宜你是天才吗，居然能在【困难】难度下通关，真厉害！";
         } else if (obstacleCount === 10) {
           msg += "子宜大人请教教我，我都没通关过【地狱】难度，你简直是蛇王！";
         }
-        msg += "\n\n请前往领取奖励（所有难度奖励一样哦）：";
+        msg += "\n\n请前往领取下方网站奖励（所有难度都奖励一样哦）：";
         window.prompt(msg, "https://3.cn/2-gOeXJe");
       }, 100);
+      gameover = false;
+      score = 0;
     }
   }
 
