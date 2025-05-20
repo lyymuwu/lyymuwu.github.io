@@ -202,9 +202,25 @@
     ctx.fillStyle = "#f44";
     ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
 
-    if (specialFoodActive) {
+    if (specialFoodActive & obstacleCount != 10) {
       ctx.fillStyle = "#44f";
       ctx.fillRect(specialFood.x * gridSize, specialFood.y * gridSize, gridSize, gridSize);
+    } else if(specialFoodActive & obstacleCount == 10) {
+        if (specialFoodActive) {
+            // 绘制红色爱心
+            const cx = specialFood.x * gridSize + gridSize / 2;
+            const cy = specialFood.y * gridSize + gridSize / 2;
+            const r = gridSize / 2; // 半径变大
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(cx, cy + r / 2);
+            ctx.bezierCurveTo(cx - r, cy - r / 2, cx - r, cy + r, cx, cy + r * 1.5);
+            ctx.bezierCurveTo(cx + r, cy + r, cx + r, cy - r / 2, cx, cy + r / 2);
+            ctx.closePath();
+            ctx.fillStyle = "#f44";
+            ctx.fill();
+            ctx.restore();
+        }
     }
 
     obstacles.forEach(obstacle => {
