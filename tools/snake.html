@@ -78,7 +78,7 @@
 
 <div class="instructions">
   <h2>游戏说明</h2>
-  <p>控制蛇吞食红色方块以获得分数。避开黄色方块（障碍物）。蓝色方块（特殊食物）可获得额外加分。</p>
+  <p>使用键盘或下方方向键控制蛇吞食红色方块以获得分数。避开黄色方块（障碍物）。蓝色方块（特殊食物）可获得额外加分。</p>
   <label for="difficulty">选择游戏难度:</label>
   <select id="difficulty">
     <option value="easy">正常 (3个障碍物)</option>
@@ -124,7 +124,7 @@
   let obstacleCount = 3;
   let obstacleMoveCounter = 0; // 新增计数器
   const obstacleMoveInterval = 5; // 每5帧移动一次障碍物
-  const success_score = 20;
+  const success_score = 520;
 
   document.getElementById('difficulty').addEventListener('change', function() {
     switch (this.value) {
@@ -259,14 +259,14 @@
       setTimeout(() => {
         let msg = "Congratulations👏👏\n\n";
         if (obstacleCount === 3) {
-          msg += "子宜你成功通关啦，太棒了！";
+          msg += "子宜你真厉害，轻松通关了这个游戏！";
         } else if (obstacleCount === 5) {
-          msg += "子宜你是天才吗，居然能在【困难】难度下通关，真厉害！";
+          msg += "子宜你是天才吗，居然能在【困难】难度下通关，太厉害了！";
         } else if (obstacleCount === 10) {
-          msg += "子宜大人请教教我，我都没通关过【地狱】难度，你简直是蛇王！";
+          msg += "子宜大人你怎么办到的，我都没通关过【地狱】难度。看来我得跟你请教一下，怎么才能像你一样轻松通关！";
         }
-        msg += "\n\n请前往领取下方网站奖励（所有难度都奖励一样哦）：";
-        window.prompt(msg, "https://3.cn/2-gOeXJe");
+        msg += "\n\n下面是奖励时间！";
+        window.prompt(msg, "https://3.cn/2gTY-LAB");
       }, 100);
       gameover = false;
       score = 0;
@@ -385,6 +385,9 @@
   });
 
 </script>
+
+<br>
+<br>
 
 </body>
 </html>
