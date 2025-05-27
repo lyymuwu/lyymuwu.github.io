@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
+  <title>记忆铺 - 美观拖拽/缩放/自适应页面</title>
+  <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+  <script src="https://unpkg.com/leancloud-storage/dist/av-min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(120deg, #e9e9ef 0%, #f5f7fa 100%);
+      min-height: 100vh;
+    }
+    body {
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    h1 {
+      font-family: 'Montserrat', 'ZCOOL XiaoWei', '微软雅黑', sans-serif;
+      color: #21243d;
+      letter-spacing: 2px;
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin: 32px 0 20px;
+      text-align: center;
+      text-shadow: 0 2px 12px #d7dfef44;
+    }
+    .input-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 640px;
+      margin: 12px auto 10px;
+      background: #fffbedee;
+      border-radius: 20px;
+      box-shadow: 0 2px 18px rgba(30,40,70,.07);
+      padding: 24px 12px 16px;
+    }
+    textarea, input[type="file"] {
+      width: 98%;
+      max-width: 540px;
+      margin-bottom: 16px;
+      font-size: 1.08rem;
+      padding: 12px;
+      border-radius: 9px;
+      border: 1.3px solid #d1d3e0;
+      transition: border .2s;
+      outline: none;
+      font-family: inherit;
+      background: #fbfbff;
+      box-sizing: border-box;
+      resize: none;
+    }
+    textarea:focus {
+      border: 1.3px solid #70a1ff;
+      background: #f2f6ff;
+    }
+    #save-btn {
+      width: 220px;
+      height: 42px;
+      margin-bottom: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      padding: 8px 10px;
+      border-radius: 11px;
+      background: linear-gradient(90deg, #6a89ff 0%, #50fae5 100%);
+      color: #fff;
+      box-shadow: 0 1.5px 7px #bfc5df46;
+      border: none;
+      cursor: pointer;
+      letter-spacing: 2px;
+      transition: background .2s, box-shadow .2s, transform .15s;
+    }
+    #save-btn:hover, #save-btn:active {
+      background: linear-gradient(90deg, #3861e8 0%, #39d3be 100%);
+      transform: scale(1.035);
+    }
+    #zoom-panel {
+      text-align:center;
+      margin: 0 0 14px;
+      user-select: none;
+      font-size: 0;
+    }
+    .zoom-btn {
+      display:inline-block;
+      background: #eef5ff;
+      border: 1.5px solid #a1baee;
+      color: #3d446e;
+      border-radius: 7px;
+      font-size: 1.25rem;
+      padding: 3px 16px;
+      margin: 0 4px 0 0;
+      cursor:pointer;
+      transition: background .2s,border .2s,color .2s;
+    }
+    .zoom-btn.selected, .zoom-btn:active {
+      background: #beeaff;
+      color: #207ecb;
+      border: 1.5px solid #207ecb;
+    }
+    #entries {
+      position: relative;
+      min-height: 800px;
+      transition: transform .3s cubic-bezier(.62,.28,.31,1);
+      margin: 0 auto;
+      max-width: 1200px;
+      background: rgba(230,239,255, 0.2);
+      border-radius: 30px;
+      box-shadow: 0 3px 30px #bfcff588;
+      overflow: visible;
+    }
+    .diary-entry {
+      position: absolute;
+      min-width: 160px;
+      min-height: 80px;
+      background: linear-gradient(135deg,#fff 80%,#e4ecfd 100%);
+      border-radius: 18px;
+      padding: 18px 22px 24px 18px;
+      box-sizing: border-box;
+      box-shadow: 0 2px 18px #b6cced3c, 0 1.5px 12px #afb9ff18;
+      border: none;
+      font-size: 1.04rem;
+      word-break: break-word;
+      z-index: 1;
+      transition: box-shadow .23s, border .12s, transform .14s;
+      overflow: auto;
+      outline: none;
+      cursor: grab;
+      opacity: 0.97;
+      will-change: transform, width, height, box-shadow, border;
+      user-select: text;
+      touch-action: none;
+    }
+    .diary-entry.selected, .diary-entry:active {
+      border: 2.5px solid #206cff;
+      box-shadow: 0 5px 24px #aacefc54, 0 2px 13px #3021c017;
+      z-index: 3;
+      cursor: grabbing;
+      opacity: 1;
+    }
+    .diary-entry:hover {
+      border: 2px solid #a1b6ffca;
+      z-index: 2;
+    }
+    .diary-entry p {
+      margin: 0 0 2px 0;
+      color: #283556;
+      font-size: 1.08rem;
+      line-height: 1.6;
+      font-family: 'ZCOOL XiaoWei', 'Montserrat', sans-serif;
+    }
+    .diary-entry img {
+      max-width: 100%; max-height:120px; 
+      margin-top: 9px; border-radius: 12px;
+      box-shadow: 0 1.5px 9px #d2daff35;
+      display:block;
+    }
+    .resize-handle {
+      width: 22px; height: 22px;
+      background: 
+         linear-gradient(135deg,#e5ecfa 45%,#c0dafb 47%,#9fc1f1 100%);
+      border-bottom-right-radius: 12px;
+      position: absolute;
+      right: 1px;
+      bottom: 2px;
+      cursor: se-resize;
+      z-index: 99;
+      box-shadow: 0 2px 8px #bedfff44;
+      border: 1px solid #c8ebff80;
+      opacity: 0.90;
+      transition: background .15s, box-shadow .12s;
+    }
+    @media (max-width:900px){
+      #entries {max-width: 98vw; }
+      .diary-entry { font-size:0.99rem;}
+    }
+    @media (max-width:600px){
+      h1{ font-size:1.1rem;}
+      .input-panel{padding:12px 4px}
+      textarea{font-size:0.99rem;}
+      #save-btn{height:38px;font-size:.99rem;}
+      .diary-entry { padding:9px 7px 17px 8px; min-width:110px; min-height:56px; }
+      .resize-handle{ width:16px; height:16px; }
+    }
+    /* 移动端滚动隐藏底部条 */
+    .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none;}
+    .hide-scrollbar::-webkit-scrollbar { width:0; height:0;}
+  </style>
+</head>
+<body>
+  <h1>记忆铺</h1>
+  <div class="input-panel">
+    <textarea id="diary-text" placeholder="写下你的记忆..." rows="3"></textarea>
+    <input type="file" id="image-upload" accept="image/*"/>
+    <button id="save-btn">保存记忆</button>
+  </div>
+  <div id="zoom-panel">
+    <!-- <span class="zoom-btn" onclick="setZoom(0.8)">80%</span> -->
+    <span class="zoom-btn" onclick="setZoom(1)">100%</span>
+    <span class="zoom-btn" onclick="setZoom(1.25)">125%</span>
+    <span class="zoom-btn" onclick="setZoom(1.5)">150%</span>
+    <span class="zoom-btn" onclick="setZoom(4)">400%</span>
+  </div>
+  <div id="entries"></div>
+  <script>
+    // LeanCloud 初始化
+    AV.init({
+      appId: '9m7f5R2xHyCOMMwHA2s5bGyZ-MdYXbMMI你好'.slice(0, -2),
+      appKey: '29YcZITQ1Fdg5L8QIycIvkD1世界'.slice(0, -2),
+      serverURLs: 'http://9m7f5r2x.api.lncldglobal.com'
+    });
+    const DiaryEntry = AV.Object.extend('DiaryEntry');
+
+    // 页面缩放(视觉scale)
+    let _zoom_ = 1;
+    function setZoom(val){
+      _zoom_ = Number(val);
+      const entriesDiv = document.getElementById("entries");
+      entriesDiv.style.transform = "scale(" + _zoom_ + ")";
+      // 居中/自适应布局
+      entriesDiv.style.transformOrigin = "0 0";
+      // 按钮高亮
+      document.querySelectorAll(".zoom-btn").forEach(btn=>{
+        btn.classList.remove("selected");
+        if(btn.textContent.indexOf(Math.round(_zoom_*100)+"%")>-1) btn.classList.add("selected");
+      });
+    }
+    setZoom(1);
+
+    // 渲染全部entry
+    async function loadEntries() {
+      const query = new AV.Query('DiaryEntry');
+      query.ascending('createdAt');
+      const results = await query.find();
+      const entriesDiv = document.getElementById("entries");
+      entriesDiv.innerHTML = "";
+      // 容器高度伸缩
+      let minH = 780, maxX = 0,maxY = 0;
+      results.forEach((entry) => {
+        const diaryEntryDiv = document.createElement("div");
+        diaryEntryDiv.className = "diary-entry hide-scrollbar";
+        diaryEntryDiv.setAttribute("data-objectid", entry.id);
+
+        const positionX = entry.get("positionX")||0,
+              positionY = entry.get("positionY")||0,
+              width = entry.get("width")||320,
+              height= entry.get("height")||110;
+        diaryEntryDiv.style.width = width + "px";
+        diaryEntryDiv.style.height = height + "px";
+        diaryEntryDiv.style.transform = `translate(${positionX}px,${positionY}px)`;
+
+        // 记录内容
+        const diaryText = document.createElement("p");
+        diaryText.textContent = entry.get("text");
+        diaryEntryDiv.appendChild(diaryText);
+
+        // 图片
+        if(entry.get("image")){
+          const image = document.createElement("img");
+          image.src = entry.get("image");
+          diaryEntryDiv.appendChild(image);
+        }
+        // 右下角缩放手柄
+        const resizeHandle = document.createElement("div");
+        resizeHandle.className = "resize-handle";
+        diaryEntryDiv.appendChild(resizeHandle);
+
+        // 长按删除
+        makeLongPressToDelete(diaryEntryDiv, entry);
+
+        entriesDiv.appendChild(diaryEntryDiv);
+        // 思考容器高度
+        maxX = Math.max(maxX,positionX+width);
+        maxY = Math.max(maxY,positionY+height);
+      });
+      // 动态适配entries高度
+      entriesDiv.style.minHeight = Math.max(minH,maxY+50)+"px";
+      enableInteract();
+    }
+
+    // 保存正文、图片
+    document.getElementById("save-btn").addEventListener("click", async () => {
+      const text = document.getElementById("diary-text").value.trim();
+      const fileInput = document.getElementById("image-upload");
+      const file = fileInput.files[0];
+      if (!text && !file) return;
+      async function saveToCloud(imageBase64){
+        const entry = new DiaryEntry();
+        entry.set('text', text);
+        if(imageBase64) entry.set('image', imageBase64);
+        entry.set('positionX', 30+Math.random()*180);
+        entry.set('positionY', 34+Math.random()*100);
+        entry.set('width', 320);
+        entry.set('height', 110);
+        try{
+          await entry.save();
+          loadEntries();
+          document.getElementById("diary-text").value = "";
+          fileInput.value = "";
+        }catch(e){
+          alert("保存失败："+e.message);
+        }
+      }
+      if(file){
+        const reader = new FileReader();
+        reader.onload = function(event){
+          saveToCloud(event.target.result);
+        };
+        reader.readAsDataURL(file);
+      }else saveToCloud(null);
+    });
+
+    // 高质量拖动缩放
+    function enableInteract() {
+      interact('.diary-entry')
+        .draggable({
+          allowFrom: '.diary-entry',
+          listeners:{
+            move:event=>{
+              const target = event.target;
+              // 注意缩放时要除以_zoom_才与用户视觉一致
+              let transform = target.style.transform;
+              let match = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(transform);
+              let x = (match?parseFloat(match[1]):0) + event.dx/_zoom_;
+              let y = (match?parseFloat(match[2]):0) + event.dy/_zoom_;
+              target.style.transform = `translate(${x}px,${y}px)`;
+            },
+            end:savePosition
+          },
+          inertia:true
+        })
+        .resizable({
+          edges: {right:true, bottom:true},
+          listeners:{
+            move: event=>{
+              const target = event.target;
+              let width = event.rect.width, height = event.rect.height;
+              target.style.width = width+"px";
+              target.style.height= height+"px";
+              // 注意元素正被缩放，右下手柄自动随之调整
+            },
+            end: saveResize
+          },
+          inertia: true,
+          modifiers:[interact.modifiers.restrictSize({
+            min:{width:120, height:60},
+            max:{width:980, height:700}
+          })]
+        })
+        .on('down', function(ev){
+          // 高亮选中
+          document.querySelectorAll('.diary-entry').forEach(x=>x.classList.remove('selected'));
+          ev.currentTarget.classList.add('selected');
+        });
+      // 点击空白，取消所有高亮
+      document.getElementById('entries').addEventListener('mousedown',e=>{
+        if(e.target.className.indexOf('diary-entry')==-1)
+          document.querySelectorAll('.diary-entry').forEach(x=>x.classList.remove('selected'));
+      });
+      document.getElementById('entries').addEventListener('touchstart',e=>{
+        if(!e.target.closest('.diary-entry'))
+          document.querySelectorAll('.diary-entry').forEach(x=>x.classList.remove('selected'));
+      });
+    }
+
+    function savePosition(event){
+      const target = event.target;
+      const objectId = target.getAttribute('data-objectid');
+      if (!objectId) return;
+      let match = target.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
+      const positionX = match?parseFloat(match[1]):0;
+      const positionY = match?parseFloat(match[2]):0;
+      const entryObj = AV.Object.createWithoutData('DiaryEntry', objectId);
+      entryObj.set('positionX', positionX);
+      entryObj.set('positionY', positionY);
+      entryObj.save();
+    }
+    function saveResize(event){
+      const target = event.target;
+      const objectId = target.getAttribute('data-objectid');
+      if (!objectId) return;
+      const width = parseFloat(target.style.width)||320;
+      const height= parseFloat(target.style.height)||110;
+      const entryObj = AV.Object.createWithoutData('DiaryEntry', objectId);
+      entryObj.set('width', width);
+      entryObj.set('height', height);
+      entryObj.save();
+    }
+
+    // 长按删除
+    function makeLongPressToDelete(elem, entryObj) {
+      let timer = null, moved = false, sx=0,sy=0;
+      elem.addEventListener('mousedown',function(e){
+        if(e.button!==0) return;
+        moved = false; sx = e.clientX; sy = e.clientY;
+        timer = setTimeout(function(){
+          if(!moved && window.confirm("是否删除这条记忆？")) deleteEntry(entryObj);
+        },850);
+      });
+      elem.addEventListener('mousemove', function(e){
+        if(Math.abs(e.clientX-sx)>8||Math.abs(e.clientY-sy)>8) moved=true;
+      });
+      elem.addEventListener('mouseup', function(){clearTimeout(timer)});
+      elem.addEventListener('mouseleave', function(){clearTimeout(timer)});
+      // 移动端
+      elem.addEventListener('touchstart',function(e){
+        if(e.touches.length>1) return;
+        moved=false; sx=e.touches[0].clientX; sy=e.touches[0].clientY;
+        timer = setTimeout(function(){
+          if(!moved && window.confirm("是否删除这条记忆？")) deleteEntry(entryObj);
+        },850);
+      });
+      elem.addEventListener('touchmove',function(e){
+        let dx = e.touches[0].clientX-sx, dy = e.touches[0].clientY-sy;
+        if(Math.abs(dx)>6||Math.abs(dy)>6) moved=true;
+      });
+      elem.addEventListener('touchend',function(){clearTimeout(timer)});
+      elem.addEventListener('touchcancel',function(){clearTimeout(timer)});
+    }
+    async function deleteEntry(entryObj){
+      try{
+        await entryObj.destroy();
+        loadEntries();
+      }catch(e){
+        alert("删除失败："+e.message);
+      }
+    }
+
+    // 初始化
+    loadEntries();
+  </script>
+</body>
+</html>
